@@ -88,3 +88,8 @@ draw_flower_circle(8, 800, 170, 0, hue_offset=0.0)
 
 screen.update()
 turtle.done()
+
+# I know that it looks like an LSD trip but as I mentioned I wanted to create some kind of visuals.
+# I used ClaudeAI to create the code step by step (mostly writing it myself and correcting it with AI).
+# With that I shaped my Idea while learning about the code but I didn't generate the whole code at once.
+# I hope this is still in the AI agreement.
