@@ -165,7 +165,9 @@ def cave_path():
     elif cave_counter == 3:
         cave_question(answer, "left")
     elif cave_counter == 4:
-        if answer == "left":
+        cave_question(answer, "left")
+    elif cave_counter == 5:
+        if answer == "right":
             cave_counter += 1
             cave_path()
         elif answer == "turnaround":
