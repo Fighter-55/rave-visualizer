@@ -1,35 +1,36 @@
 import time
+import sys
 
 # Inventory
 inventory = []
 
 # Items
 items_in_pantry = [
-    {"name": "tomato", "type": "food", "uses": 6, "description": "A red and ripe fruit."},
-    {"name": "egg", "type": "food", "uses": 10, "description": "A white egg."},
-    {"name": "eggplant", "type": "food", "uses": 2, "description": "A soft, purple vegetable."},
-    {"name": "bell pepper", "type": "food", "uses": 3, "description": "A red, juicy vegetable."},
-    {"name": "onion", "type": "food", "uses": 8, "description": "A vegetable that is brown and dry from the outside, white and juicy from the inside."},
-    {"name": "carrot", "type": "food", "uses": 12, "description": "A long orange vegetable."},
-    {"name": "lettuce", "type": "food", "uses": 2, "description": "Green and juicy leaves."},
-    {"name": "celery", "type": "food", "uses": 2, "description": "A hard, long and green plant."},
+    {"name": "tomato", "type": "food", "description": "A red and ripe fruit."},
+    {"name": "egg", "type": "food", "description": "A white egg."},
+    {"name": "eggplant", "type": "food", "description": "A soft, purple vegetable."},
+    {"name": "bell pepper", "type": "food", "description": "A red, juicy vegetable."},
+    {"name": "onion", "type": "food", "description": "A vegetable that is brown and dry from the outside, white and juicy from the inside."},
+    {"name": "carrot", "type": "food", "description": "A long orange vegetable."},
+    {"name": "lettuce", "type": "food", "description": "Green and juicy leaves."},
+    {"name": "celery", "type": "food", "description": "A hard, long and green plant."},
+    {"name": "parsley", "type": "garnish", "description": "Green Leaves in a bundle."},
 ]
 items_in_cupboard = [
-    {"name": "kitchen knife", "type": "tool", "uses": 10, "description": "A sharp blade with a wooden handle."},
-    {"name": "fork", "type": "silverware", "uses": 10, "description": "A silver object with three tines"},
-    {"name": "spoon", "type": "silverware", "uses": 10, "description": "A silver object with a small hollow."},
-    {"name": "knife", "type": "silverware", "uses": 10, "description": "A silver object with a dull blade."},
-    {"name": "pot", "type": "tool", "uses": 100, "description": "A metal container with a lid."},
-    {"name": "pan", "type": "tool", "uses": 100, "description": "A metal hollow with a handle."},
-    {"name": "bowl", "type": "tool", "uses": 10, "description": "A porcelain hollow."},
-    {"name": "cutting board", "type": "tool", "uses": 10000, "description": "A used wooden board"},
-    {"name": "bandage", "type": "healing", "uses": 10, "description": "A small sticky plastic object used on cutting wounds."},
+    {"name": "kitchen knife", "type": "tool", "description": "A sharp blade with a wooden handle."},
+    {"name": "fork", "type": "silverware", "description": "A silver object with three tines"},
+    {"name": "spoon", "type": "silverware", "description": "A silver object with a small hollow."},
+    {"name": "knife", "type": "silverware", "description": "A silver object with a dull blade."},
+    {"name": "pot", "type": "tool", "description": "A metal container with a lid."},
+    {"name": "pan", "type": "tool", "description": "A metal hollow with a handle."},
+    {"name": "bowl", "type": "tool", "description": "A porcelain hollow."},
+    {"name": "cutting board", "type": "tool", "description": "A used wooden board"},
+    {"name": "bandage", "type": "healing", "description": "A small sticky plastic object used on cutting wounds."},
 ]
-
 # Recipes
 omelette_recipe = {
     "name": "Omelette",
-    "steps": ["egg", "pan", "egg"]
+    "steps": ["egg", "pan", "egg", "tomato", "parsley"]
 }
 
 current_step = 0
@@ -59,11 +60,13 @@ def pickup_item(item_name):
         if item["name"] == item_name:
             inventory.append(item)
             items_in_pantry.remove(item)
+            print("You've picked up", item["name"], "from the pantry")
             return True
     for item in items_in_cupboard:
         if item["name"] == item_name:
             inventory.append(item)
             items_in_cupboard.remove(item)
+            print("You've picked up a", item["name"], "from the cupboard")
             return True
     return False
 
@@ -71,39 +74,35 @@ def drop_item(item_name):
     for item in inventory:
         if item["name"] == item_name:
             inventory.remove(item)
-            if item["type"] == "food":
+            if item["type"] == "food" or item["type"] == "garnish":
                 items_in_pantry.append(item)
+                print("You've put", item["name"], "back in the pantry")
             else:
                 items_in_cupboard.append(item)
+                print("You've put", item["name"], "back in the cupboard")
             return True
-
-def use_item(item_name):
-    for item in inventory:
-        if item["name"] == item_name:
-            item["uses"] -= 1
 
 def examine(item_name):
     for item in inventory + items_in_pantry + items_in_cupboard:
         if item["name"] == item_name:
             print(item["description"])
+            print(f"- It is classified as a {item['type']} ")
             return True
     print("Item not found.")
     return False
 
+# Intro of the Game
 def start_cooking_game():
     print("Congratulations!")
     time.sleep(2)
-    print("You have a lot of friends!")
+    print("You have a friend!")
     time.sleep(2)
     print("Unfortunately, you invited them for a dinner and you have to cook for them.")
-    time.sleep(2)
-    print("You have 10 minutes (rounds) to prepare your meal.")
-    time.sleep(2)
-    print("If the time runs out, you will lose all your friends.")
     time.sleep(2)
     print("Type 'help' for a list of commands.")
     time.sleep(2)
     print("Welcome to the cooking game!")
+    time.sleep(2)
 
 # Main function for getting user input
 def main():
@@ -123,8 +122,6 @@ def main():
             pickup_item(" ".join(command[1:]))
         elif command[0] == "drop":
             drop_item(" ".join(command[1:]))
-        elif command[0] == "use":
-            use_item(" ".join(command[1:]))
         elif command[0] == "examine":
             examine(" ".join(command[1:]))
         elif command[0] == "cook":
@@ -132,16 +129,25 @@ def main():
                 cook_omelette()
         elif command[0] == "help":
             print(
-                "Commands: show inventory, show pantry, show cupboard, pickup [item], drop [item], use [item], examine [item]")
+                "Commands: show inventory, show pantry, show cupboard, pickup [item], drop [item], examine [item], cook omelette")
         else:
             print("Unknown command.")
 
+# Function for checking if the needed Item for the recipe is in the players Inventory
 def is_in_inventory(item_name):
     for item in inventory:
         if item["name"] == item_name:
             return True
     return False
 
+# Ending the Game after finishing the omelette
+def game_end():
+    print("You cooked for your Friend!")
+    time.sleep(3)
+    print("Thank you for playing the cooking Game.")
+    sys.exit()
+
+# function for cooking the omelette
 def cook_omelette():
     global current_step
     needed_item = omelette_recipe["steps"][current_step]
@@ -152,13 +158,18 @@ def cook_omelette():
             print("You whisk the Egg together.")
         elif current_step == 2:
             print("You fry the Egg in the pan.")
+        elif current_step == 3:
+            print("You garnish the Omelette with Tomato.")
+        elif current_step == 4:
+            print("You garnish the Omelette with Parsley.")
         current_step += 1
         print("Good job!")
     else:
         print(f"You need {needed_item} in your inventory!")
     if current_step == len(omelette_recipe["steps"]):
         print("You finished the omelette!")
-        inventory.append({"name": "plate of omelette", "uses": 1, "type": "food"})
+        inventory.append({"name": "plate of omelette", "type": "food"})
+        game_end()
 
 if __name__ == "__main__":
     main()
@@ -166,7 +177,10 @@ if __name__ == "__main__":
 # To be honest I made the Task bigger than it was.
 # My original Idea was to have a Game where you have to cook 3 Meals in a certain time with many ingredients.
 # You'd have to put in the right commands at the right time so that you wouldn't fail your dish.
-# I also wanted to implement a cutting minigame where you could cut your hand and would lose time bandaging it.
+# There would also be Rounds or a timer running so you have time pressure.
+# I also wanted to implement a cutting minigame where you would cut the ingredients but also cut your hand and would lose time bandaging it.
 # But I think this Idea was far beyond my capabilities, even with Claude as a explaining tool.
+# I know that using the same command for cooking the omelette is very repetetive but I couldn't approve it more. :(
 # It was also very difficult to structure my idea and to realize what would be possible.
 # I would really like to finish this project but it is beyond my capabilities and I think also beyond time ressourcces.
+# I hope you'll still enjoy it. :)
