@@ -39,17 +39,17 @@ current_step = 0
 def show_inventory():
     print("Inventory:")
     for item in inventory:
-        print(f"- {item['name']} ({item['uses']} uses left)")
+        print(f"- {item['name']}")
 
 def show_pantry():
     print("Pantry:")
     for item in items_in_pantry:
-        print(f"- {item['name']} ({item['uses']} uses left)")
+        print(f"- {item['name']}")
 
 def show_cupboard():
     print("Cupboard:")
     for item in items_in_cupboard:
-        print(f"- {item['name']} ({item['uses']} uses left)")
+        print(f"- {item['name']}")
 
 # Functions for picking up, dropping, examining and using items
 def pickup_item(item_name):
