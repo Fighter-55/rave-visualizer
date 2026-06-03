@@ -10,6 +10,7 @@ I am **19 years** old and I am from a little village near **Weimar** in Thuringi
 
 My preferred Drinks are:
 1. Beer (Here a selection of my favorite Brands):
+   * Augustiner Hell
    * Bayreuther Hell
    * Starnberger Hell
    * Astra Kiezmische
