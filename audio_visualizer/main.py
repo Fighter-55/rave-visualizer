@@ -1,6 +1,7 @@
-from audio import analyze
+from menu import run_menu
 from visualizer import run
 
-filepath = "test.mp3"
-tempo, beat_times = analyze(filepath)
-run(tempo, beat_times, filepath)
+tempo, beat_times, filepath = run_menu()
+
+if tempo is not None:
+    run(tempo, beat_times, filepath)
