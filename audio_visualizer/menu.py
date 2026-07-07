@@ -24,6 +24,7 @@ def run_menu():
     filepath = None
     tempo = None
     beat_times = None
+    audio_features = None
     status_text = "Drop an audio file onto this window"
 
     clock = pygame.time.Clock()
@@ -39,7 +40,7 @@ def run_menu():
                 status_text = f"Analyzing: {filepath.split('/')[-1]}..."
                 screen.fill(BLACK)
                 pygame.display.flip()
-                tempo, beat_times = analyze(filepath)
+                tempo, beat_times, audio_features = analyze(filepath)
                 status_text = f"Ready! Detected BPM: {tempo:.1f}"
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -48,11 +49,11 @@ def run_menu():
                 # click-event START button
                 if tempo is not None:
                     if 300 <= mouse_x <= 500 and 450 <= mouse_y <= 510:
-                        return tempo, beat_times, filepath, "file"
+                        return tempo, beat_times, audio_features, filepath, "file"
 
                 # click-event LIVE INPUT button
                 if 250 <= mouse_x <= 550 and 360 <= mouse_y <= 420:
-                    return None, None, None, "live"
+                    return None, None, None, None, "live"
 
         screen.fill(BLACK)
 
@@ -87,4 +88,4 @@ def run_menu():
         clock.tick(60)
 
     pygame.quit()
-    return None, None, None, None
+    return None, None, None, None, None

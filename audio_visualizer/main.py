@@ -1,9 +1,10 @@
 from menu import run_menu
 from visualizer import run
+from live_visualizer import run_live
 
-tempo, beat_times, filepath, mode = run_menu()
+tempo, beat_times, audio_features, filepath, mode = run_menu()
 
 if mode == "file" and tempo is not None:
-    run(tempo, beat_times, filepath)
+    run(tempo, beat_times, filepath, mode="mandala", audio_features=audio_features)
 elif mode == "live":
-    print("Live mode coming soon!")
+    run_live()
