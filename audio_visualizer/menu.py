@@ -90,7 +90,7 @@ def run_menu():
 
                 # LIVE INPUT button
                 if LIVE_X <= mouse_x <= LIVE_X + LIVE_W and LIVE_Y <= mouse_y <= LIVE_Y + LIVE_H:
-                    return None, None, None, None, "live", "mandala"
+                    return None, None, None, None, "live", MODES[selected_mode]
 
         screen.fill(BLACK)
 

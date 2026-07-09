@@ -7,4 +7,4 @@ tempo, beat_times, audio_features, filepath, mode, visual_mode = run_menu()
 if mode == "file" and tempo is not None:
     run(tempo, beat_times, filepath, mode=visual_mode, audio_features=audio_features, width=1280, height=800)
 elif mode == "live":
-    run_live()
+    run_live(mode=visual_mode)

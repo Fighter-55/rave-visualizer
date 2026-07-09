@@ -1,75 +1,97 @@
 import pygame
+import time
+import math
 import live_audio
+from mandala import MandalaVisualizer
+from organic_blobs import BlobVisualizer
+from stage_visualizer import AdvancedStageVisualizer
 
-# Sensitivity thresholds
 BASS_THRESHOLD = 500000
-MID_THRESHOLD = 200000
-TREBLE_THRESHOLD = 100000
 
-def run_live():
+def run_live(mode="mandala", colors=None):
     pygame.init()
 
-    WIDTH, HEIGHT = 1200, 800
+    WIDTH, HEIGHT = 1280, 800
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Rave Visualizer – Live Mode")
+    pygame.display.set_caption(f"Rave Visualizer – Live {mode.upper()}")
 
-    # Colors
-    BLACK = (0, 0, 0)
-    PURPLE = (150, 50, 255)
-    CYAN = (0, 255, 255)
-    PINK = (255, 0, 150)
+    if colors is None:
+        colors = [(150, 50, 255), (0, 255, 255), (255, 0, 150)]
+
+    if mode == "blobs":
+        visualizer = BlobVisualizer(WIDTH, HEIGHT, palette=colors)
+    elif mode == "stage":
+        visualizer = AdvancedStageVisualizer(WIDTH, HEIGHT, palette=colors)
+    else:
+        visualizer = MandalaVisualizer(WIDTH, HEIGHT, palette=colors)
 
     clock = pygame.time.Clock()
-
-    # Open microphone stream
     p, stream = live_audio.open_stream()
-
-    # Separate pulse sizes for each band
-    bass_pulse = 0
-    mid_pulse = 0
-    treble_pulse = 0
+    start_time = time.time()
 
     running = True
     while running:
+        dt = max(0.001, clock.tick(60) / 1000.0)
+        t = time.time() - start_time
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                running = False
 
-        # Get current frequency band energies
+        # Get live frequency bands
         bass, mid, treble = live_audio.get_frequency_bands(stream)
 
-        # Trigger pulses if energy spikes above threshold
+        # Map raw FFT values to normalized 0..1 feature dict
+        live_energy     = max(0.1, min(1.0, bass / 1200000.0))
+        live_brightness = max(0.1, min(1.0, treble / 400000.0))
+        live_percussive = 0.8 if bass > BASS_THRESHOLD else 0.1
+        live_mid        = max(0.1, min(1.0, mid / 500000.0))
+
+        features = {
+            "energy":     live_energy,
+            "brightness": live_brightness,
+            "percussive": live_percussive,
+            "onset":      live_percussive,
+            "harmonic":   max(0.1, min(1.0, 1.0 - live_brightness)),
+            "chroma":     [max(0.0, math.sin(t + i * 0.5) * live_energy) for i in range(12)],
+            "noisiness":  max(0.1, min(1.0, treble / 500000.0)),
+            "rolloff":    live_mid,
+        }
+
+        # Trigger beat events on bass spike
         if bass > BASS_THRESHOLD:
-            bass_pulse = 200
-        if mid > MID_THRESHOLD:
-            mid_pulse = 150
-        if treble > TREBLE_THRESHOLD:
-            treble_pulse = 100
+            if mode == "mandala":
+                visualizer.spawn_ripple(t)
+            elif mode == "blobs":
+                visualizer.on_beat(strength=1.0 + live_energy)
 
         # Draw
-        screen.fill(BLACK)
+        if mode == "blobs":
+            breathing  = 1.0 + live_energy * 0.22
+            speed_mult = 0.6 + live_brightness * 1.4
+            fade = pygame.Surface((WIDTH, HEIGHT))
+            fade.set_alpha(45)
+            fade.fill((0, 0, 0))
+            screen.blit(fade, (0, 0))
+            visualizer.update(dt)
+            visualizer.draw(screen, t, breathing=breathing, speed_mult=speed_mult)
 
-        # Bass = big purple circle
-        if bass_pulse > 5:
-            pygame.draw.circle(screen, PURPLE, (WIDTH // 2, HEIGHT // 2), int(bass_pulse))
+        elif mode == "stage":
+            fade = pygame.Surface((WIDTH, HEIGHT))
+            fade.set_alpha(40)
+            fade.fill((0, 0, 0))
+            screen.blit(fade, (0, 0))
+            visualizer.update_and_draw(screen, t, dt, features)
 
-        # Mid = cyan circle
-        if mid_pulse > 5:
-            pygame.draw.circle(screen, CYAN, (WIDTH // 2, HEIGHT // 2), int(mid_pulse))
-
-        # Treble = small pink circle
-        if treble_pulse > 5:
-            pygame.draw.circle(screen, PINK, (WIDTH // 2, HEIGHT // 2), int(treble_pulse))
-
-        # Shrink all pulses each frame
-        bass_pulse *= 0.85
-        mid_pulse *= 0.85
-        treble_pulse *= 0.85
+        else:  # mandala
+            screen.fill((6, 4, 12))
+            visualizer.maybe_spawn_sparks(t, max(features["rolloff"], features["noisiness"]))
+            visualizer.draw(screen, t, dt, features)
 
         pygame.display.flip()
-        clock.tick(60)
 
-    # Clean up audio stream
     stream.stop_stream()
     stream.close()
     p.terminate()
