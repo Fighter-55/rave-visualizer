@@ -6,7 +6,7 @@ from mandala import MandalaVisualizer
 from organic_blobs import BlobVisualizer
 from stage_visualizer import AdvancedStageVisualizer
 from grid_visualizer import Grid3DVisualizer
-
+from flower_visualizer import FlowerVisualizer  # Import des neuen Moduls
 
 BASS_THRESHOLD = 500000
 
@@ -20,12 +20,15 @@ def run_live(mode="mandala", colors=None):
     if colors is None:
         colors = [(150, 50, 255), (0, 255, 255), (255, 0, 150)]
 
+    # Zuweisung des Live-Visualizers inklusive Flower
     if mode == "blobs":
         visualizer = BlobVisualizer(WIDTH, HEIGHT, palette=colors)
     elif mode == "stage":
         visualizer = AdvancedStageVisualizer(WIDTH, HEIGHT, palette=colors)
     elif mode == "grid":
         visualizer = Grid3DVisualizer(WIDTH, HEIGHT, palette=colors)
+    elif mode == "flower":
+        visualizer = FlowerVisualizer(WIDTH, HEIGHT, palette=colors)
     else:
         visualizer = MandalaVisualizer(WIDTH, HEIGHT, palette=colors)
 
@@ -41,41 +44,38 @@ def run_live(mode="mandala", colors=None):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_f:
-                pygame.display.toggle_fullscreen()
+            elif event.type == pygame.VIDEORESIZE:
+                WIDTH, HEIGHT = event.w, event.h
+                screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 
-        # Get live frequency bands
-        bass, mid, treble = live_audio.get_frequency_bands(stream)
+        try:
+            bass, mid, treble = live_audio.get_frequency_bands(stream)
+        except Exception:
+            bass, mid, treble = 0, 0, 0
 
-        # Map raw FFT values to normalized 0..1 feature dict
-        live_energy     = max(0.1, min(1.0, bass / 1200000.0))
-        live_brightness = max(0.1, min(1.0, treble / 400000.0))
-        live_percussive = 0.8 if bass > BASS_THRESHOLD else 0.1
-        live_mid        = max(0.1, min(1.0, mid / 500000.0))
+        # Normalisierung der Live-Werte
+        live_energy = min(1.0, (bass + mid) / 1200000.0)
+        live_brightness = min(1.0, treble / 400000.0)
+        live_onset = 1.0 if bass > BASS_THRESHOLD else 0.0
 
         features = {
-            "energy":     live_energy,
+            "energy": live_energy,
+            "onset": live_onset,
             "brightness": live_brightness,
-            "percussive": live_percussive,
-            "onset":      live_percussive,
-            "harmonic":   max(0.1, min(1.0, 1.0 - live_brightness)),
-            "chroma":     [max(0.0, math.sin(t + i * 0.5) * live_energy) for i in range(12)],
-            "noisiness":  max(0.1, min(1.0, treble / 500000.0)),
-            "rolloff":    live_mid,
+            "percussive": live_onset,
+            "chroma": [0.0] * 12
         }
 
-        # Trigger beat events on bass spike
+        # Trigger Beat Events
         if bass > BASS_THRESHOLD:
             if mode == "mandala":
                 visualizer.spawn_ripple(t)
-            elif mode == "blobs":
+            elif mode == "blobs" or mode == "flower":
                 visualizer.on_beat(strength=1.0 + live_energy)
 
-        # Draw
+        # Render-Modus abarbeiten
         if mode == "blobs":
-            breathing  = 1.0 + live_energy * 0.22
+            breathing = 1.0 + live_energy * 0.22
             speed_mult = 0.6 + live_brightness * 1.4
             fade = pygame.Surface((WIDTH, HEIGHT))
             fade.set_alpha(45)
@@ -98,10 +98,18 @@ def run_live(mode="mandala", colors=None):
             screen.blit(fade, (0, 0))
             visualizer.update_and_draw(screen, t, dt, features)
 
+        elif mode == "flower":
+            # Sanfter Trail-Effekt für die Fäden im Live-Modus
+            fade = pygame.Surface((WIDTH, HEIGHT))
+            fade.set_alpha(35)
+            fade.fill((6, 4, 12))
+            screen.blit(fade, (0, 0))
+            visualizer.update_and_draw(screen, t, dt, features)
+
         else:  # mandala
             screen.fill((6, 4, 12))
-            visualizer.maybe_spawn_sparks(t, max(features["rolloff"], features["noisiness"]))
-            visualizer.draw(screen, t, dt, features)
+            visualizer.update(dt)
+            visualizer.draw(screen, t, pulse_strength=live_energy)
 
         pygame.display.flip()
 

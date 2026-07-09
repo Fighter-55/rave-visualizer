@@ -1,129 +1,152 @@
 import pygame
-import math
-import random
 import time
-import os
+import math
 
-# Imports aller verfügbaren Visualisierungs-Klassen
-from mandala import MandalaVisualizer
+# Alle Visualizer Module importieren
+import organic_blobs
+from stage_visualizer import AdvancedStageVisualizer
 from grid_visualizer import Grid3DVisualizer
-
-# Dynamische Imports mit Fallbacks für optionale Dateien
-try:
-    from organic_blobs import BlobVisualizer
-except ImportError:
-    try:
-        from fluid_clouds import FluidCloudVisualizer as BlobVisualizer
-    except ImportError:
-        BlobVisualizer = None
-
-try:
-    from stage_visualizer import AdvancedStageVisualizer
-except ImportError:
-    AdvancedStageVisualizer = None
+from mandala import MandalaVisualizer
+from flower_visualizer import FlowerVisualizer
+import color_menu  # Unser Echtzeit-Overlay-Modul
 
 
-def run(tempo, beat_times, filepath=None, mode="mandala", audio_features=None, colors=None, width=1280, height=800):
+class AudioFeatures:
+    def energy_at(self, t): return 0.3
+
+    def onset_at(self, t): return 0.0
+
+    def brightness_at(self, t): return 0.4
+
+
+def create_visualizer_instance(mode, width, height, colors):
+    if mode == "blobs":
+        return organic_blobs.BlobVisualizer(width, height, palette=colors)
+    elif mode == "stage":
+        return AdvancedStageVisualizer(width, height, palette=colors)
+    elif mode == "grid":
+        return Grid3DVisualizer(width, height, palette=colors)
+    elif mode == "mandala":
+        return MandalaVisualizer(width, height, palette=colors)
+    elif mode == "flower":
+        return FlowerVisualizer(width, height, palette=colors)
+    return organic_blobs.BlobVisualizer(width, height, palette=colors)
+
+
+def run(tempo, beat_times, filepath, mode="blobs", audio_features=None, colors=None, width=1280, height=800):
+    if colors is None:
+        colors = [(150, 50, 255), (0, 255, 255), (255, 0, 150)]
+    if audio_features is None:
+        audio_features = AudioFeatures()
+
     pygame.init()
     pygame.mixer.init()
 
-    # Audio-Datei laden und abspielen, falls übergeben
-    if filepath and os.path.exists(filepath):
+    try:
         pygame.mixer.music.load(filepath)
         pygame.mixer.music.play()
+    except Exception as e:
+        print(f"Audio-Fehler: {e}")
 
-    WIDTH, HEIGHT = width, height
-    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-    pygame.display.set_caption(f"Rave Visualizer – {mode.upper()} Mode")
-
-    # Standard-Farbpalette setzen, falls keine übergeben wurde
-    if colors is None:
-        colors = [(150, 50, 255), (0, 255, 255), (255, 0, 150)]
-
-    # --- SAUBERE INITIALISIERUNG DER GRAFIK-KLASSE ---
-    if mode == "grid":
-        visualizer = Grid3DVisualizer(WIDTH, HEIGHT, palette=colors)
-    elif mode == "stage" and AdvancedStageVisualizer is not None:
-        visualizer = AdvancedStageVisualizer(WIDTH, HEIGHT, palette=colors)
-    elif (mode == "blobs" or mode == "fluid") and BlobVisualizer is not None:
-        visualizer = BlobVisualizer(WIDTH, HEIGHT, palette=colors)
-    else:
-        # Fallback auf Mandala, falls eine Klasse fehlt oder ausgewählt wurde
-        visualizer = MandalaVisualizer(WIDTH, HEIGHT, palette=colors)
-
+    screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+    pygame.display.set_caption(f"Rave Visualizer - {mode.upper()}")
     clock = pygame.time.Clock()
+
+    current_mode = mode
+    current_palette_name = "Neon Rave"
+    visualizer = create_visualizer_instance(current_mode, width, height, colors)
+
     start_time = time.time()
     beat_index = 0
-    trail_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    onset_cooldown = 0.0
 
+    show_menu = False
     running = True
-    while running:
-        # dt = Delta-Time (Zeit seit dem letzten Frame in Sekunden)
-        dt = max(0.001, clock.tick(60) / 1000.0)
-        t = time.time() - start_time
 
-        # Pygame Events abfangen (Fenster schließen, Größe ändern)
+    while running:
+        dt = max(0.001, clock.tick(60) / 1000.0)
+        t = (time.time() - start_time)
+
+        mx, my = pygame.mouse.get_pos()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.VIDEORESIZE:
-                WIDTH, HEIGHT = event.w, event.h
-                screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+                width, height = event.w, event.h
+                screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
 
-        # 1. Musikalische Features auslesen (mit sicherem Fallback-Dict)
-        if audio_features:
-            try:
-                features = {
-                    "energy": audio_features.energy_at(t),
-                    "onset": audio_features.onset_at(t),
-                    "brightness": audio_features.brightness_at(t),
-                    "percussive": audio_features.percussive_onset_at(t),
-                    "harmonic": audio_features.harmonic_energy_at(t),
-                    "chroma": audio_features.chroma_at(t),
-                    "noisiness": audio_features.noisiness_at(t),
-                    "rolloff": audio_features.rolloff_at(t),
-                }
-            except Exception:
-                features = {
-                    "energy": 0.3, "onset": 0.0, "brightness": 0.4,
-                    "percussive": 0.15, "harmonic": 0.4, "chroma": [0.0] * 12,
-                    "noisiness": 0.2, "rolloff": 0.3
-                }
-        else:
-            features = {
-                "energy": 0.3, "onset": 0.0, "brightness": 0.4,
-                "percussive": 0.15, "harmonic": 0.4, "chroma": [0.0] * 12,
-                "noisiness": 0.2, "rolloff": 0.3
-            }
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_m:
+                    show_menu = not show_menu
 
-        # 2. NumPy-Array sicherer Beat-Trigger (verhindert Truth-Value-Error)
-        if beat_times is not None and len(beat_times) > 0 and beat_index < len(beat_times) and t >= beat_times[
-            beat_index]:
-            if mode == "mandala" and hasattr(visualizer, 'spawn_ripple'):
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if show_menu:
+                    old_p, old_m = current_palette_name, current_mode
+                    current_palette_name, current_mode = color_menu.check_overlay_clicks(
+                        mx, my, width, height, current_palette_name, current_mode
+                    )
+
+                    if current_palette_name != old_p or current_mode != old_m:
+                        new_colors = color_menu.PRESET_PALETTES[current_palette_name]
+                        visualizer = create_visualizer_instance(current_mode, width, height, new_colors)
+                        pygame.display.set_caption(f"Rave Visualizer - {current_mode.upper()}")
+
+        # Audio-Features lesen
+        features = {
+            "energy": audio_features.energy_at(t),
+            "onset": audio_features.onset_at(t),
+            "brightness": audio_features.brightness_at(t) if hasattr(audio_features, 'brightness_at') else 0.4,
+            "percussive": audio_features.onset_at(t),
+            "chroma": audio_features.chroma[:, audio_features._index(t, audio_features.chroma.shape[1])] if hasattr(
+                audio_features, 'chroma') else [0.0] * 12
+        }
+
+        # Beat-Trigger
+        if beat_index < len(beat_times) and t >= beat_times[beat_index]:
+            if current_mode == "mandala" and hasattr(visualizer, 'spawn_ripple'):
                 visualizer.spawn_ripple(t)
-            elif mode == "blobs" and hasattr(visualizer, 'on_beat'):
+            elif hasattr(visualizer, 'on_beat'):
                 visualizer.on_beat(strength=1.0 + features["energy"])
             beat_index += 1
 
-        # 3. GRAFIK RENDERN NACH MODUS
-        if mode == "grid":
-            screen.fill((6, 4, 12))  # Hintergrund dunkel füllen
-            visualizer.update_and_draw(screen, t, dt, features)
+        # Onset-Filter
+        onset_cooldown -= dt
+        if onset_cooldown <= 0 and features["onset"] > 0.55:
+            if hasattr(visualizer, 'micro_pulse'):
+                visualizer.micro_pulse(strength=features["onset"])
+            onset_cooldown = 0.05
 
-        elif mode == "blobs" or mode == "fluid":
-            # Motion-Blur / Schweif-Effekt für die organischen Formen
-            trail_surf.fill((6, 4, 12, 15))
-            visualizer.update_and_draw(trail_surf, t, dt, features)
-            screen.blit(trail_surf, (0, 0))
+        # Trail-Effekt rendern
+        trail_surf = pygame.Surface((width, height))
+        trail_surf.set_alpha(35 if current_mode in ["flower", "stage", "grid"] else 45)
+        trail_surf.fill((6, 4, 12) if current_mode in ["flower", "mandala"] else (0, 0, 0))
+        screen.blit(trail_surf, (0, 0))
+
+        # --- ABSTURZSICHERE RENDERING-WEICHE ---
+        # Jedes Modul kocht sein eigenes Süppchen bei den Funktionsnamen.
+        # Hier prüfen wir dynamisch, was die geladene Klasse anbietet.
+
+        if current_mode == "blobs":
+            breathing = 1.0 + features["energy"] * 0.25
+            speed_mult = 0.5 + features["onset"] * 1.5
+            if hasattr(visualizer, 'update'): visualizer.update(dt)
+            if hasattr(visualizer, 'draw'): visualizer.draw(screen, t, breathing=breathing, speed_mult=speed_mult)
+
+        elif current_mode == "mandala":
+            if hasattr(visualizer, 'update'): visualizer.update(dt)
+            if hasattr(visualizer, 'draw'): visualizer.draw(screen, t, pulse_strength=features["energy"])
 
         else:
-            # Für Mandala und Stage Mode
-            screen.fill((6, 4, 12))
-            if hasattr(visualizer, 'draw'):
-                visualizer.draw(screen, t, dt, features)
-            elif hasattr(visualizer, 'update_and_draw'):
+            # Für Flower, Stage, Grid3D
+            if hasattr(visualizer, 'update_and_draw'):
                 visualizer.update_and_draw(screen, t, dt, features)
+
+        # 2. OVERLAY DARÜBER ZEICHNEN (Falls 'M' aktiv ist)
+        if show_menu:
+            color_menu.draw_live_overlay(screen, width, height, current_palette_name, current_mode)
 
         pygame.display.flip()
 
+    pygame.mixer.music.stop()
     pygame.quit()

@@ -1,6 +1,7 @@
 import pygame
 from audio import analyze
 
+
 def run_menu():
     pygame.init()
 
@@ -28,124 +29,109 @@ def run_menu():
     clock = pygame.time.Clock()
     running = True
 
-    # Button dimensions
+    # Button Abmessungen
     DROP_X, DROP_Y = int(WIDTH * 0.2), int(HEIGHT * 0.28)
     DROP_W, DROP_H = int(WIDTH * 0.6), int(HEIGHT * 0.16)
 
     LIVE_X, LIVE_Y = int(WIDTH * 0.35), int(HEIGHT * 0.52)
     LIVE_W, LIVE_H = int(WIDTH * 0.3), int(HEIGHT * 0.08)
 
-    START_X, START_Y = int(WIDTH * 0.38), int(HEIGHT * 0.68)
-    START_W, START_H = int(WIDTH * 0.24), int(HEIGHT * 0.08)
+    START_X, START_Y = int(WIDTH * 0.4), int(HEIGHT * 0.82)
+    START_W, START_H = int(WIDTH * 0.2), int(HEIGHT * 0.08)
 
-    # Mode selector
-    MODES = ["mandala", "blobs", "stage", "grid"]
+    MODE_X, MODE_Y = int(WIDTH * 0.1), int(HEIGHT * 0.70)
+    MODE_W, MODE_H = int(WIDTH * 0.14), int(HEIGHT * 0.06)
+
+    MODES = ["blobs", "stage", "grid", "mandala", "flower"]
     selected_mode = 0
-    MODE_X, MODE_Y = int(WIDTH * 0.2), int(HEIGHT * 0.82)
-    MODE_W, MODE_H = int(WIDTH * 0.18), int(HEIGHT * 0.08)
-
-    def draw_progress(message, step, total_steps):
-        screen.fill(BLACK)
-        title = font_large.render("RAVE VISUALIZER", True, PURPLE)
-        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, int(HEIGHT * 0.08)))
-
-        msg = font_medium.render(message, True, WHITE)
-        screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, int(HEIGHT * 0.45)))
-
-        bar_x, bar_y = int(WIDTH * 0.2), int(HEIGHT * 0.55)
-        bar_w, bar_h = int(WIDTH * 0.6), 30
-        pygame.draw.rect(screen, GRAY, (bar_x, bar_y, bar_w, bar_h), border_radius=8)
-
-        fill_w = int(bar_w * (step / total_steps))
-        if fill_w > 0:
-            pygame.draw.rect(screen, PURPLE, (bar_x, bar_y, fill_w, bar_h), border_radius=8)
-
-        step_text = font_small.render(f"Step {step} of {total_steps}", True, LIGHT_GRAY)
-        screen.blit(step_text, (WIDTH // 2 - step_text.get_width() // 2, int(HEIGHT * 0.63)))
-        pygame.display.flip()
+    mode_type = "file"  # 'file' oder 'live'
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                pygame.quit()
+                return None, None, None, None, None, None, None
 
             elif event.type == pygame.DROPFILE:
                 filepath = event.file
-                tempo, beat_times, audio_features = analyze(filepath, progress_callback=draw_progress)
-                status_text = f"Ready! Detected BPM: {tempo:.1f}"
+                status_text = f"Loading audio file: {filepath.split('/')[-1]}"
+
+                # Bildschirm updaten für Lade-Status
+                screen.fill(BLACK)
+                txt = font_medium.render("Processing audio... Please wait.", True, WHITE)
+                screen.blit(txt, (WIDTH // 2 - txt.get_width() // 2, HEIGHT // 2))
+                pygame.display.flip()
+
+                # Audio-Analyse starten
+                tempo, beat_times, audio_features = analyze(filepath)
+                status_text = f"Ready! BPM: {tempo:.1f} | Beats: {len(beat_times)}"
+                mode_type = "file"
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
+                mx, my = event.pos
 
-                # Mode selector buttons
-                for i in range(len(MODES)):
-                    btn_x = MODE_X + i * (MODE_W + int(WIDTH * 0.02))
-                    if btn_x <= mouse_x <= btn_x + MODE_W and MODE_Y <= mouse_y <= MODE_Y + MODE_H:
-                        selected_mode = i
+                # Klick auf Live Input Mode
+                if LIVE_X <= mx <= LIVE_X + LIVE_W and LIVE_Y <= my <= LIVE_Y + LIVE_H:
+                    mode_type = "live"
+                    status_text = "Live Input Mode Selected"
+                    tempo = 120.0  # Dummy-Werte für den Live-Modus
+                    beat_times = []
+                    audio_features = None
 
-                # START button
-                if tempo is not None:
-                    if START_X <= mouse_x <= START_X + START_W and START_Y <= mouse_y <= START_Y + START_H:
-                        from color_menu import choose_palette
-                        pygame.quit()
-                        chosen_colors = choose_palette()
-                        pygame.init()
-                        return tempo, beat_times, audio_features, filepath, "file", MODES[selected_mode], chosen_colors
+                # Klick auf den Start Button
+                elif tempo is not None and START_X <= mx <= START_X + START_W and START_Y <= my <= START_Y + START_H:
+                    running = False
 
-                # LIVE INPUT button
-                if LIVE_X <= mouse_x <= LIVE_X + LIVE_W and LIVE_Y <= mouse_y <= LIVE_Y + LIVE_H:
-                    from color_menu import choose_palette
-                    pygame.quit()
-                    chosen_colors = choose_palette()
-                    pygame.init()
-                    return None, None, None, None, "live", MODES[selected_mode], chosen_colors
+                # Klick auf die Visualizer-Modus Buttons
+                elif MODE_Y <= my <= MODE_Y + MODE_H:
+                    for i in range(len(MODES)):
+                        btn_x = MODE_X + i * (MODE_W + int(WIDTH * 0.02))
+                        if btn_x <= mx <= btn_x + MODE_W:
+                            selected_mode = i
 
+        # Oberfläche zeichnen
         screen.fill(BLACK)
 
-        # Title
+        # Titel
         title = font_large.render("RAVE VISUALIZER", True, PURPLE)
-        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, int(HEIGHT * 0.05)))
+        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, int(HEIGHT * 0.08)))
 
-        subtitle = font_medium.render("GENERATOR", True, WHITE)
-        screen.blit(subtitle, (WIDTH // 2 - subtitle.get_width() // 2, int(HEIGHT * 0.15)))
-
-        # Drop zone
+        # Drag & Drop Zone
         pygame.draw.rect(screen, GRAY, (DROP_X, DROP_Y, DROP_W, DROP_H), border_radius=12)
-        pygame.draw.rect(screen, LIGHT_GRAY, (DROP_X, DROP_Y, DROP_W, DROP_H), 2, border_radius=12)
-        drop_text = font_small.render(status_text, True, WHITE)
-        screen.blit(drop_text, (WIDTH // 2 - drop_text.get_width() // 2, DROP_Y + DROP_H // 2 - 11))
+        pygame.draw.rect(screen, PURPLE, (DROP_X, DROP_Y, DROP_W, DROP_H), 2, border_radius=12)
 
-        # Or divider
-        or_text = font_small.render("── or ──", True, LIGHT_GRAY)
-        screen.blit(or_text, (WIDTH // 2 - or_text.get_width() // 2, int(HEIGHT * 0.48)))
+        status_render = font_small.render(status_text, True, WHITE)
+        screen.blit(status_render, (WIDTH // 2 - status_render.get_width() // 2, DROP_Y + DROP_H // 2 - 12))
 
-        # LIVE INPUT button
-        pygame.draw.rect(screen, DARK_PURPLE, (LIVE_X, LIVE_Y, LIVE_W, LIVE_H), border_radius=10)
+        # Live Input Button
+        pygame.draw.rect(screen, DARK_PURPLE if mode_type != "live" else PURPLE, (LIVE_X, LIVE_Y, LIVE_W, LIVE_H),
+                         border_radius=10)
         live_text = font_medium.render("LIVE INPUT MODE", True, WHITE)
         screen.blit(live_text, (WIDTH // 2 - live_text.get_width() // 2, LIVE_Y + LIVE_H // 2 - 15))
 
-        # START button
-        if tempo is not None:
-            pygame.draw.rect(screen, PURPLE, (START_X, START_Y, START_W, START_H), border_radius=10)
-            start_text = font_medium.render("START", True, WHITE)
-            screen.blit(start_text, (WIDTH // 2 - start_text.get_width() // 2, START_Y + START_H // 2 - 15))
-
-        # Mode selector
-        mode_label = font_small.render("Visual Mode:", True, LIGHT_GRAY)
+        # Visualizer Modus-Auswahl
+        mode_label = font_small.render("Visual Mode Select:", True, LIGHT_GRAY)
         screen.blit(mode_label, (MODE_X, MODE_Y - 30))
 
         for i, mode_name in enumerate(MODES):
             btn_x = MODE_X + i * (MODE_W + int(WIDTH * 0.02))
             btn_color = PURPLE if i == selected_mode else DARK_PURPLE
             pygame.draw.rect(screen, btn_color, (btn_x, MODE_Y, MODE_W, MODE_H), border_radius=8)
-            pygame.draw.rect(screen, LIGHT_GRAY if i == selected_mode else GRAY,
-                             (btn_x, MODE_Y, MODE_W, MODE_H), 2, border_radius=8)
-            label = font_small.render(mode_name.upper(), True, WHITE)
-            screen.blit(label, (btn_x + MODE_W // 2 - label.get_width() // 2,
-                                MODE_Y + MODE_H // 2 - label.get_height() // 2))
+
+            txt = font_small.render(mode_name.upper(), True, WHITE)
+            screen.blit(txt, (btn_x + MODE_W // 2 - txt.get_width() // 2, MODE_Y + MODE_H // 2 - 11))
+
+        # START Button (wird erst sichtbar, wenn eine Datei geladen oder Live gewählt ist)
+        if tempo is not None or mode_type == "live":
+            pygame.draw.rect(screen, PURPLE, (START_X, START_Y, START_W, START_H), border_radius=10)
+            start_text = font_medium.render("START VISUALIZER", True, WHITE)
+            screen.blit(start_text, (WIDTH // 2 - start_text.get_width() // 2, START_Y + START_H // 2 - 15))
 
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(30)
 
     pygame.quit()
-    return None, None, None, None, None, None, None
+
+    # HIER IST DIE GEÄNDERTE ZEILE: Gibt exakt 7 Werte zurück (inklusive ", None" am Ende für die Farben)
+    return tempo, beat_times, audio_features, filepath, mode_type, MODES[selected_mode], None
