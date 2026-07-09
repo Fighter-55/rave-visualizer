@@ -39,7 +39,7 @@ def run_menu():
     START_W, START_H = int(WIDTH * 0.24), int(HEIGHT * 0.08)
 
     # Mode selector
-    MODES = ["mandala", "blobs", "stage"]
+    MODES = ["mandala", "blobs", "stage", "grid"]
     selected_mode = 0
     MODE_X, MODE_Y = int(WIDTH * 0.2), int(HEIGHT * 0.82)
     MODE_W, MODE_H = int(WIDTH * 0.18), int(HEIGHT * 0.08)

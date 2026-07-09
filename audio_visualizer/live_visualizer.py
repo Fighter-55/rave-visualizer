@@ -5,6 +5,8 @@ import live_audio
 from mandala import MandalaVisualizer
 from organic_blobs import BlobVisualizer
 from stage_visualizer import AdvancedStageVisualizer
+from grid_visualizer import Grid3DVisualizer
+
 
 BASS_THRESHOLD = 500000
 
@@ -22,6 +24,8 @@ def run_live(mode="mandala", colors=None):
         visualizer = BlobVisualizer(WIDTH, HEIGHT, palette=colors)
     elif mode == "stage":
         visualizer = AdvancedStageVisualizer(WIDTH, HEIGHT, palette=colors)
+    elif mode == "grid":
+        visualizer = Grid3DVisualizer(WIDTH, HEIGHT, palette=colors)
     else:
         visualizer = MandalaVisualizer(WIDTH, HEIGHT, palette=colors)
 
@@ -81,6 +85,13 @@ def run_live(mode="mandala", colors=None):
             visualizer.draw(screen, t, breathing=breathing, speed_mult=speed_mult)
 
         elif mode == "stage":
+            fade = pygame.Surface((WIDTH, HEIGHT))
+            fade.set_alpha(40)
+            fade.fill((0, 0, 0))
+            screen.blit(fade, (0, 0))
+            visualizer.update_and_draw(screen, t, dt, features)
+
+        elif mode == "grid":
             fade = pygame.Surface((WIDTH, HEIGHT))
             fade.set_alpha(40)
             fade.fill((0, 0, 0))
