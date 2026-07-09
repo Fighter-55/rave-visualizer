@@ -1,7 +1,7 @@
 import pygame
 import live_audio
 
-# Sensitivity thresholds 
+# Sensitivity thresholds
 BASS_THRESHOLD = 500000
 MID_THRESHOLD = 200000
 TREBLE_THRESHOLD = 100000
@@ -9,7 +9,7 @@ TREBLE_THRESHOLD = 100000
 def run_live():
     pygame.init()
 
-    WIDTH, HEIGHT = 800, 600
+    WIDTH, HEIGHT = 1200, 800
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Rave Visualizer – Live Mode")
 

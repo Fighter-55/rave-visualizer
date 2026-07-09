@@ -227,7 +227,7 @@ class MandalaVisualizer:
 
 
 # ---- Startfunktion für den Visualizer (Hauptebene, außerhalb der Klasse) ----
-def run_mandala(tempo, beat_times, filepath, colors=None, audio_features=None, width=1000, height=700):
+def run_mandala(tempo, beat_times, filepath, colors=None, audio_features=None, width=1280, height=800):
     if colors is None:
         colors = [(150, 50, 255), (0, 255, 255), (255, 0, 150)]
 

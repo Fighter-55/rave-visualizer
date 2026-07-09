@@ -66,10 +66,18 @@ class AudioFeatures:
         return float(self.rolloff[self._index(t, len(self.rolloff))])
 
 
-def analyze(filepath):
+def analyze(filepath, progress_callback=None):
+    def progress(message, step, total):
+        if progress_callback:
+            progress_callback(message, step, total)
+
+    total_steps = 6
+
+    progress("Loading audio file...", 1, total_steps)
     print(f"Loading audio file: {filepath}")
     y, sr = librosa.load(filepath)
 
+    progress("Detecting BPM and beats...", 2, total_steps)
     print("Analyzing BPM and beats...")
     tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
     tempo = float(tempo.item())
@@ -77,26 +85,27 @@ def analyze(filepath):
     print(f"Detected BPM: {tempo:.1f}")
     print(f"Found {len(beat_times)} beats")
 
+    progress("Separating harmonic and percussive...", 3, total_steps)
     print("Separating harmonic/percussive components...")
     y_harmonic, y_percussive = librosa.effects.hpss(y)
 
+    progress("Analyzing energy, onset and timbre...", 4, total_steps)
     print("Analyzing energy, onset strength and timbre...")
     hop_length = 512
-
     rms = librosa.feature.rms(y=y, hop_length=hop_length)[0]
     onset_env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop_length)
     centroid = librosa.feature.spectral_centroid(y=y, sr=sr, hop_length=hop_length)[0]
-
     percussive_onset = librosa.onset.onset_strength(y=y_percussive, sr=sr, hop_length=hop_length)
     harmonic_rms = librosa.feature.rms(y=y_harmonic, hop_length=hop_length)[0]
 
+    progress("Analyzing chroma and treble...", 5, total_steps)
     print("Analyzing chroma (Tonhoehen) and treble content...")
     chroma = librosa.feature.chroma_stft(y=y_harmonic, sr=sr, hop_length=hop_length)
     chroma_norm = chroma / (chroma.max(axis=0, keepdims=True) + 1e-6)
-
     zcr = librosa.feature.zero_crossing_rate(y=y, hop_length=hop_length)[0]
     rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr, hop_length=hop_length)[0]
 
+    progress("Finalizing...", 6, total_steps)
     audio_features = AudioFeatures(
         sr=sr,
         hop_length=hop_length,

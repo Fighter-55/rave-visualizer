@@ -158,7 +158,7 @@ class BlobVisualizer:
 
 
 def run_blobs(tempo, beat_times, filepath, colors=None, audio_features=None,
-              width=1000, height=700):
+              width=1280, height=800):
     """Startet die Blob-Visualisierung.
     colors: Liste von (r,g,b) Tupeln.
     audio_features: optionales AudioFeatures-Objekt aus audio.py fuer
