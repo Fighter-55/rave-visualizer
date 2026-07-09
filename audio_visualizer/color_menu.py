@@ -19,7 +19,7 @@ def choose_palette(width=900, height=650):
     (Liste von (r,g,b) Tupeln) zurueck."""
     pygame.init()
     screen = pygame.display.set_mode((width, height))
-    pygame.display.set_caption("Farbpalette waehlen")
+    pygame.display.set_caption("Choose a Color Palette")
     font = pygame.font.SysFont("arial", 26)
     small_font = pygame.font.SysFont("arial", 18)
     clock = pygame.time.Clock()
@@ -50,7 +50,7 @@ def choose_palette(width=900, height=650):
                     running = False
 
         screen.fill((15, 15, 20))
-        title = font.render("Waehle eine Farbpalette (Pfeiltasten+Enter oder Klick)", True, (255, 255, 255))
+        title = font.render("Chose with arrowkeys", True, (255, 255, 255))
         screen.blit(title, (30, 30))
 
         for i, name in enumerate(names):

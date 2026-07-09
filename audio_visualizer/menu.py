@@ -86,11 +86,19 @@ def run_menu():
                 # START button
                 if tempo is not None:
                     if START_X <= mouse_x <= START_X + START_W and START_Y <= mouse_y <= START_Y + START_H:
-                        return tempo, beat_times, audio_features, filepath, "file", MODES[selected_mode]
+                        from color_menu import choose_palette
+                        pygame.quit()
+                        chosen_colors = choose_palette()
+                        pygame.init()
+                        return tempo, beat_times, audio_features, filepath, "file", MODES[selected_mode], chosen_colors
 
                 # LIVE INPUT button
                 if LIVE_X <= mouse_x <= LIVE_X + LIVE_W and LIVE_Y <= mouse_y <= LIVE_Y + LIVE_H:
-                    return None, None, None, None, "live", MODES[selected_mode]
+                    from color_menu import choose_palette
+                    pygame.quit()
+                    chosen_colors = choose_palette()
+                    pygame.init()
+                    return None, None, None, None, "live", MODES[selected_mode], chosen_colors
 
         screen.fill(BLACK)
 
@@ -140,4 +148,4 @@ def run_menu():
         clock.tick(60)
 
     pygame.quit()
-    return None, None, None, None, None, None
+    return None, None, None, None, None, None, None

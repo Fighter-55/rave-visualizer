@@ -11,8 +11,8 @@ BASS_THRESHOLD = 500000
 def run_live(mode="mandala", colors=None):
     pygame.init()
 
-    WIDTH, HEIGHT = 1280, 800
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    screen = pygame.display.set_mode((1280, 800), pygame.RESIZABLE)
+    WIDTH, HEIGHT = screen.get_size()
     pygame.display.set_caption(f"Rave Visualizer – Live {mode.upper()}")
 
     if colors is None:
@@ -39,6 +39,8 @@ def run_live(mode="mandala", colors=None):
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_f:
+                pygame.display.toggle_fullscreen()
 
         # Get live frequency bands
         bass, mid, treble = live_audio.get_frequency_bands(stream)
