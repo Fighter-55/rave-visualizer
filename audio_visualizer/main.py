@@ -1,11 +1,11 @@
 from menu import run_menu
 from visualizer import run
 from live_visualizer import run_live
-import color_menu # Nutzt das neue, aktualisierte Farbsystem
+import color_menu
 
 tempo, beat_times, audio_features, filepath, mode, visual_mode, colors = run_menu()
 
-# Falls im Hauptmenü keine Farben gewählt wurden, nehmen wir das erste Preset als Standard
+
 if colors is None:
     colors = color_menu.PRESET_PALETTES["Neon Rave"]
 

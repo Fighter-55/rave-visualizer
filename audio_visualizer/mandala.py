@@ -212,7 +212,17 @@ class MandalaVisualizer:
         except Exception:
             pass
 
-    def draw(self, screen, t, dt, features):
+    # Standardisierte Hauptmethode zur nahtlosen Einbindung
+    def update_and_draw(self, screen, t, dt, features):
+        # Fenstergröße dynamisch anpassen, falls skaliert wurde
+        self.width, self.height = screen.get_size()
+        self.center = (self.width // 2, self.height // 2)
+        self.max_radius = min(self.width, self.height) * 0.55
+
+        # Funken automatisch erzeugen
+        spark_activity = max(features.get("rolloff", 0.3), features.get("noisiness", 0.2))
+        self.maybe_spawn_sparks(t, spark_activity)
+
         layer_surf = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
 
         self.draw_waves(layer_surf, t, features["energy"], features["brightness"])
@@ -224,64 +234,3 @@ class MandalaVisualizer:
         self.draw_core(layer_surf, t, features["energy"])
 
         screen.blit(layer_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
-
-
-# ---- Startfunktion für den Visualizer (Hauptebene, außerhalb der Klasse) ----
-def run_mandala(tempo, beat_times, filepath, colors=None, audio_features=None, width=1280, height=800):
-    if colors is None:
-        colors = [(150, 50, 255), (0, 255, 255), (255, 0, 150)]
-
-    pygame.init()
-    pygame.mixer.init()
-    pygame.mixer.music.load(filepath)
-    pygame.mixer.music.play()
-
-    screen = pygame.display.set_mode((width, height))
-    pygame.display.set_caption(f"Rave Visualizer - Mandala - {tempo:.1f} BPM")
-    clock = pygame.time.Clock()
-
-    visualizer = MandalaVisualizer(width, height, palette=colors)
-
-    start_time = time.time()
-    beat_index = 0
-    running = True
-
-    while running:
-        dt = clock.tick(60) / 1000.0
-        t = time.time() - start_time
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running = False
-
-        if audio_features is not None:
-            features = {
-                "energy": audio_features.energy_at(t),
-                "onset": audio_features.onset_at(t),
-                "brightness": audio_features.brightness_at(t),
-                "percussive": audio_features.percussive_onset_at(t),
-                "harmonic": audio_features.harmonic_energy_at(t),
-                "chroma": audio_features.chroma_at(t),
-                "noisiness": audio_features.noisiness_at(t),
-                "rolloff": audio_features.rolloff_at(t),
-            }
-        else:
-            features = {
-                "energy": 0.4, "onset": 0.0, "brightness": 0.4,
-                "percussive": 0.0, "harmonic": 0.3,
-                "chroma": [0.0] * 12, "noisiness": 0.2, "rolloff": 0.3,
-            }
-
-        if beat_index < len(beat_times) and t >= beat_times[beat_index]:
-            visualizer.spawn_ripple(t)
-            beat_index += 1
-
-        visualizer.maybe_spawn_sparks(t, max(features["rolloff"], features["noisiness"]))
-
-        screen.fill((6, 4, 12))
-        visualizer.draw(screen, t, dt, features)
-        pygame.display.flip()
-
-    pygame.quit()

@@ -7,8 +7,7 @@ def lerp_color(c1, c2, f):
 
 
 def palette_gradient(palette, f):
-    """Erzeugt einen fliessenden, zyklischen Verlauf ueber die Palette.
-    f: beliebiger float (z.B. Winkel/Zeit-basiert), wird modulo 1 gemappt."""
+
     n = len(palette)
     f = f % 1.0
     scaled = f * n
